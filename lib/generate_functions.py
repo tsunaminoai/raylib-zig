@@ -43,14 +43,17 @@ def ziggify_type(name: str, t: str) -> str:
         "camera", "collisionPoint", "frames", "image", "colorCount", "dst",
         "texture", "srcPtr", "dstPtr", "count", "codepointSize", "utf8Size",
         "position", "mesh", "materialCount", "material", "model", "animCount",
-        "wave", "v1", "v2", "outAxis", "outAngle", "fileSize"
+        "wave", "v1", "v2", "outAxis", "outAngle", "fileSize", "glInternalFormat",
+        
     ]
     multi = [
         "data", "compData", "points", "fileData", "colors", "pixels",
         "fontChars", "chars", "recs", "codepoints", "textList", "transforms",
         "animations", "samples", "LoadImageColors", "LoadImagePalette",
         "LoadFontData", "LoadCodepoints", "TextSplit", "LoadMaterials",
-        "LoadModelAnimations", "LoadWaveSamples", "images"
+        "LoadModelAnimations", "LoadWaveSamples", "images", "glyphs", 
+        "glyphRecs", "matf", "rlGetShaderLocsDefault", "batch", "glFormat", 
+        "glType", "mipmaps", "locs"
     ]
     string = False
 
@@ -91,7 +94,8 @@ def add_namespace_to_type(t: str) -> str:
 
     if t in ["float3", "float16"]:
         t = "rlm." + t
-
+    if t in ["rlRenderBatch"]:
+        t = "rlgl." + t
     return pre + t
 
 
@@ -113,6 +117,7 @@ def make_return_cast(source_type: str, dest_type: str, inner: str) -> str:
             "[*c][*c]const u8",
             "[*c]Material",
             "[*c]ModelAnimation",
+            "[*c]rlRenderBatch",
             "[*c]f32",
     ]:
         return None
@@ -211,7 +216,10 @@ def parse_header(header_name: str, output_file: str, ext_file: str, prefix: str,
         func_name = result.group(2)
         arguments = result.group(3)
 
-        if func_name == "SetTraceLogCallback":
+        if func_name == "SetTraceLogCallback" \
+            or "Automation" in func_name \
+            or "Kernel" in func_name \
+            or "Sequence" in func_name:
             continue
 
         return_type = c_to_zig_type(return_type)
@@ -337,4 +345,12 @@ if __name__ == "__main__":
         "RMAPI ",
         "preludes/raylib-zig-math-prelude.zig",
         "preludes/raylib-zig-math-ext-prelude.zig"
+    )
+    parse_header(
+        "rlgl.h",
+        "raylib-zig-gl.zig",
+        "raylib-zig-gl-ext.zig",
+        "RLAPI ",
+        "preludes/raylib-zig-gl-prelude.zig",
+        "preludes/raylib-zig-gl-ext-prelude.zig"
     )

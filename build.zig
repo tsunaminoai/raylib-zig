@@ -82,14 +82,19 @@ pub fn getModule(b: *std.Build, comptime rl_path: []const u8) *std.Build.Module 
     if (b.modules.contains("raylib")) {
         return b.modules.get("raylib").?;
     }
-    return b.addModule("raylib", .{ .source_file = .{ .path = rl_path ++ "/lib/raylib-zig.zig" } });
+    return b.addModule(
+        "raylib",
+        .{ .source_file = .{ .path = rl_path ++ "/lib/raylib-zig.zig" } },
+    );
 }
 
 fn getModuleInternal(b: *std.Build) *std.Build.Module {
     if (b.modules.contains("raylib")) {
         return b.modules.get("raylib").?;
     }
-    return b.addModule("raylib", .{ .source_file = .{ .path = "lib/raylib-zig.zig" } });
+    return b.addModule("raylib", .{
+        .source_file = .{ .path = "lib/raylib-zig.zig" },
+    });
 }
 
 pub const math = struct {
@@ -105,6 +110,24 @@ pub const math = struct {
         var raylib = rl.getModuleInternal(b);
         return b.addModule("raylib-math", .{
             .source_file = .{ .path = "lib/raylib-zig-math.zig" },
+            .dependencies = &.{.{ .name = "raylib-zig", .module = raylib }},
+        });
+    }
+};
+
+pub const gl = struct {
+    pub fn getModule(b: *std.Build, comptime rl_path: []const u8) *std.Build.Module {
+        var raylib = rl.getModule(b, rl_path);
+        return b.addModule("rlgl", .{
+            .source_file = .{ .path = rl_path ++ "/lib/raylib-zig-gl.zig" },
+            .dependencies = &.{.{ .name = "raylib-zig", .module = raylib }},
+        });
+    }
+
+    fn getModuleInternal(b: *std.Build) *std.Build.Module {
+        var raylib = rl.getModuleInternal(b);
+        return b.addModule("rlgl", .{
+            .source_file = .{ .path = "lib/raylib-zig-gl.zig" },
             .dependencies = &.{.{ .name = "raylib-zig", .module = raylib }},
         });
     }
@@ -165,6 +188,11 @@ pub fn build(b: *std.Build) !void {
             .path = "examples/textures/sprite_anim.zig",
             .desc = "Animate a sprite",
         },
+        .{
+            .name = "rlgl_compute_shader",
+            .path = "examples/others/rlgl_compute_shader.zig",
+            .desc = "compute shader - Conway's Game of Life",
+        },
         // .{
         //     .name = "models_loading",
         //     .path = "examples/models/models_loading.zig",
@@ -181,6 +209,7 @@ pub fn build(b: *std.Build) !void {
 
     var raylib = rl.getModuleInternal(b);
     var raylib_math = rl.math.getModuleInternal(b);
+    var rlgl = rl.gl.getModuleInternal(b);
 
     for (examples) |ex| {
         if (target.getOsTag() == .emscripten) {
@@ -210,6 +239,7 @@ pub fn build(b: *std.Build) !void {
             rl.link(b, exe, target, optimize);
             exe.addModule("raylib", raylib);
             exe.addModule("raylib-math", raylib_math);
+            exe.addModule("rlgl", rlgl);
             const run_cmd = b.addRunArtifact(exe);
             const run_step = b.step(ex.name, ex.desc);
             run_step.dependOn(&run_cmd.step);
