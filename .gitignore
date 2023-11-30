@@ -5,4 +5,5 @@ Project/*
 libraylib.a
 raylib.h
 raymath.h
+rlgl.h
 **/.DS_Store
